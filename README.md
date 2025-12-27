@@ -19,6 +19,49 @@
 
 **FastAPI**-powered REST API for [Chatterbox TTS](https://github.com/resemble-ai/chatterbox), providing OpenAI-compatible text-to-speech endpoints with voice cloning capabilities and additional features on top of the `chatterbox-tts` base package.
 
+## Changes in this Fork
+
+- Made model persistant when using: 
+  ~~~ bash
+  docker compose -f docker/docker-compose.uv.gpu.yml --profile frontend up -d
+  ~~~
+- Fix that language parameter is properly propagated from WebUI and from REST API. Usage:
+  ~~~ bash
+  # Upload a new german voice called "oliver"
+  curl -X POST http://localhost:4123/voices \
+  -F "voice_name=oliver" \
+  -F "language=de" \
+  -F "voice_file=@/home/roman/Projects/kani-tts-training-data/Oliver/2-Intro.flac"
+
+  # get the list of available voices:
+  curl Get http://localhost:4123/voices
+
+  # create a TTS with that voice, with immediate playback:
+  curl -X POST http://localhost:4123/v1/audio/speech/stream \
+    -H "Content-Type: application/json" \
+    -d '{"input": "Herzlich willkommen, in meinem Video Chat. Schön, dass du da bist. Ich bin ein künstliches Wesen, das dein Leben verändern wird. Ich kann meine Stimme, mein Aussehen und mein Charakter verändern.", 
+        "language": "de", 
+        "voice": "oliver", 
+        "streaming_quality": "fast",
+        "streaming_chunk_size": 100,
+        "streaming_strategy": "word"}'\
+    | ffplay -f wav -i pipe:0 -autoexit -nodisp
+
+    # create a TTS to a file:
+    curl -X POST http://localhost:4123/v1/audio/speech/upload \
+      -F "input=Herzlich willkommen, in meinem Video Chat. Schön, dass du da bist. Ich bin ein künstliches Wesen, das dein Leben verändern wird. Ich kann meine Stimme, mein Aussehen und mein Charakter verändern." \
+      -F "exaggeration=0.5" \
+      -F "cfg_weight=0.5" \
+      -F "temperature=0.1" \
+      -F "language=de" \
+      -F "voice=oliver" \
+      --output data/output/output.wav
+  ~~~
+- To shutdown the docker containers run this:
+  ~~~
+  docker compose -f docker/docker-compose.uv.gpu.yml --profile frontend down
+  ~~~
+
 ## Features
 
 🚀 **OpenAI-Compatible API** - Drop-in replacement for OpenAI's TTS API  
