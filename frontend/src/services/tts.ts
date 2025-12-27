@@ -10,6 +10,10 @@ export const createTTSService = (baseUrl: string, sessionId?: string) => ({
       formData.append('voice', request.voice);
     }
 
+    if (request.language) {
+      formData.append('language', request.language);
+    }
+
     if (request.exaggeration !== undefined) {
       formData.append('exaggeration', request.exaggeration.toString());
     }
@@ -140,6 +144,10 @@ export const createTTSService = (baseUrl: string, sessionId?: string) => ({
 
     if (request.voice) {
       formData.append('voice', request.voice);
+    }
+
+    if (request.language) {
+      formData.append('language', request.language);
     }
 
     if (request.exaggeration !== undefined) {

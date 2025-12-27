@@ -222,6 +222,7 @@ async def generate_speech_internal(
         print(f"  - Exaggeration: {exaggeration}")
         print(f"  - CFG Weight: {cfg_weight}")
         print(f"  - Temperature: {temperature}")
+        print(f"  - Language ID: {language_id}") # Add this log
         
         # Update status with chunk information
         update_tts_status(request_id, TTSStatus.GENERATING_AUDIO, "Starting audio generation", 
@@ -251,9 +252,10 @@ async def generate_speech_internal(
                 }
                 
                 # Add language_id for multilingual models
-                if is_multilingual():
+                if is_multilingual():                    
                     generate_kwargs["language_id"] = language_id
-                
+                    print(f"  - Language ID {language_id} added to kwargs") # Add this log
+                                    
                 audio_tensor = await loop.run_in_executor(
                     None,
                     lambda: model.generate(**generate_kwargs)
@@ -854,6 +856,7 @@ async def text_to_speech(request: TTSRequest):
 async def text_to_speech_with_upload(
     input: str = Form(..., description="The text to generate audio for", min_length=1, max_length=3000),
     voice: Optional[str] = Form("alloy", description="Voice name from library or OpenAI voice name (defaults to configured sample)"),
+    language: Optional[str] = Form(None, description="Language code (e.g., 'en', 'de', 'es')"),
     response_format: Optional[str] = Form("wav", description="Audio format (always returns WAV)"),
     speed: Optional[float] = Form(1.0, description="Speed of speech (ignored)"),
     stream_format: Optional[str] = Form("audio", description="Streaming format: 'audio' for raw audio stream, 'sse' for Server-Side Events"),
@@ -900,12 +903,13 @@ async def text_to_speech_with_upload(
     # Handle voice selection and file upload
     temp_voice_path = None
     voice_sample_path = Config.VOICE_SAMPLE_PATH  # Default
-    language_id = "en"  # Default language
-    
-    # First, try to resolve voice name from library if no file uploaded
+    language_id = language or "en"  # Use provided language or default
+
     if not voice_file:
-        voice_sample_path, language_id = resolve_voice_path_and_language(voice)
-    
+        voice_sample_path, resolved_language = resolve_voice_path_and_language(voice)
+        if not language:
+            language_id = resolved_language
+
     # If a file is uploaded, it takes priority over voice name
     if voice_file:
         try:
@@ -949,6 +953,7 @@ async def text_to_speech_with_upload(
             # Create async generator that handles cleanup
             async def sse_streaming_with_cleanup():
                 try:
+                    print(f"🔊 Using language_id for SSE streaming: {language_id}")
                     async for sse_event in generate_speech_sse(
                         text=input,
                         voice_sample_path=voice_sample_path,
@@ -1026,8 +1031,11 @@ async def stream_text_to_speech(request: TTSRequest):
     """Stream speech generation from text using Chatterbox TTS with voice selection support"""
     
     # Resolve voice name to file path and language
-    voice_sample_path, language_id = resolve_voice_path_and_language(request.voice)
-    
+    voice_sample_path, resolved_language_id = resolve_voice_path_and_language(request.voice)
+
+    # Use request language if provided, otherwise use resolved language
+    language_id = request.language if request.language else resolved_language_id
+
     # Create streaming response
     return StreamingResponse(
         generate_speech_streaming(
@@ -1073,6 +1081,7 @@ async def stream_text_to_speech_with_upload(
     streaming_chunk_size: Optional[int] = Form(None, description="Characters per streaming chunk (50-500)", ge=50, le=500),
     streaming_strategy: Optional[str] = Form(None, description="Chunking strategy (sentence, paragraph, fixed, word)"),
     streaming_quality: Optional[str] = Form(None, description="Quality preset (fast, balanced, high)"),
+    language: Optional[str] = Form(None, description="Language code (e.g. 'en', 'de', 'fr')"),
     voice_file: Optional[UploadFile] = File(None, description="Optional voice sample file for custom voice cloning")
 ):
     """Stream speech generation from text using Chatterbox TTS with optional voice file upload"""
@@ -1103,11 +1112,15 @@ async def stream_text_to_speech_with_upload(
     temp_voice_path = None
     voice_sample_path = Config.VOICE_SAMPLE_PATH  # Default
     language_id = "en"  # Default language
-    
+
     # First, try to resolve voice name from library if no file uploaded
     if not voice_file:
         voice_sample_path, language_id = resolve_voice_path_and_language(voice)
-    
+
+    # Use explicitly provided language if available (overrides defaults and library language)
+    if language:
+        language_id = language
+
     # If a file is uploaded, it takes priority over voice name
     if voice_file:
         try:
