@@ -35,6 +35,8 @@ services:
       - VOICE_SAMPLE_PATH=/app/voice-sample.mp3
       - DEVICE=${DEVICE:-cuda}
       - MODEL_CACHE_DIR=${MODEL_CACHE_DIR:-/cache}
+      - HF_HOME=${MODEL_CACHE_DIR:-/cache}
+      - HF_HUB_OFFLINE=${HF_HUB_OFFLINE:-1}
       - VOICE_LIBRARY_DIR=${VOICE_LIBRARY_DIR:-/voices}
 
       # NVIDIA/CUDA settings
@@ -44,14 +46,14 @@ services:
       # Mount voice sample file (optional)
       - ${VOICE_SAMPLE_HOST_PATH:-../voice-sample.mp3}:/app/voice-sample.mp3:ro
 
-      # Mount model cache for persistence
-      - chatterbox-models:${MODEL_CACHE_DIR:-/cache}
+      # Mount model cache directory as host bind mount
+      - ./data/model:${MODEL_CACHE_DIR:-/cache}
 
-      # Mount voice library for persistence
-      - chatterbox-voices:${VOICE_LIBRARY_DIR:-/voices}
+      # Mount voice library as host bind mount
+      - ./data/voices:${VOICE_LIBRARY_DIR:-/voices}
 
-      # Mount long text data for persistence
-      - chatterbox-longtext-data:${LONG_TEXT_DATA_DIR:-/data/long_text_jobs}
+      # Mount long text data as host bind mount
+      - ./data/longtext:${LONG_TEXT_DATA_DIR:-/data/long_text_jobs}
 
       # Optional: Mount custom voice samples directory (legacy)
       - ${VOICE_SAMPLES_DIR:-../voice-samples}:/app/voice-samples:ro
@@ -86,11 +88,3 @@ services:
     depends_on:
       - chatterbox-tts
     restart: unless-stopped
-
-volumes:
-  chatterbox-models:
-    driver: local
-  chatterbox-voices:
-    driver: local
-  chatterbox-longtext-data:
-    driver: local
