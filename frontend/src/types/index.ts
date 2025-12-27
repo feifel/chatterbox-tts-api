@@ -5,6 +5,7 @@ export interface TTSRequest {
   cfg_weight?: number;
   temperature?: number;
   voice_file?: File;
+  language?: string;
   session_id?: string;
   stream_format?: 'audio' | 'sse';
   streaming_chunk_size?: number;

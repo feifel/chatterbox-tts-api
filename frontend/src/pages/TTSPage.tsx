@@ -284,7 +284,7 @@ export default function TTSPage() {
         exaggeration,
         cfg_weight: cfgWeight,
         temperature,
-        language: 'en',
+        language: selectedVoice?.language || 'en',
         output_format: 'mp3',
         session_id: sessionId
       };
@@ -320,6 +320,10 @@ export default function TTSPage() {
     if (selectedVoice) {
       // Use voice name for backend voice library
       requestData.voice = selectedVoice.name;
+
+      if (selectedVoice.language) {
+        requestData.language = selectedVoice.language;
+      }
 
       // Also include voice file if it's a client-side voice (for backward compatibility)
       if (selectedVoice.file) {

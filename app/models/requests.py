@@ -11,6 +11,7 @@ class TTSRequest(BaseModel):
     
     input: str = Field(..., description="The text to generate audio for", min_length=1, max_length=3000)
     voice: Optional[str] = Field("alloy", description="Voice to use (ignored - uses voice sample)")
+    language: Optional[str] = Field(None, description="Language code (e.g. 'en', 'de', 'fr')")
     response_format: Optional[str] = Field("wav", description="Audio format (always returns WAV)")
     speed: Optional[float] = Field(1.0, description="Speed of speech (ignored)")
     stream_format: Optional[str] = Field("audio", description="Streaming format: 'audio' for raw audio stream, 'sse' for Server-Side Events")
